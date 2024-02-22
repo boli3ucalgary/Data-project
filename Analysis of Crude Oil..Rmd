@@ -1,0 +1,874 @@
+---
+title: "DATA603 - Project Final Report"
+author: "Group 1"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r load libraries, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+library(binom)
+library(car)
+library(collapsibleTree)
+library(dbplyr)
+library(dplyr)
+library(EnvStats)
+library(GGally)
+library(ggformula)
+library(ggplot2)
+library(gmodels)
+library(htmltools)
+library(ISLR)
+library(knitr)
+library(lawstat)
+library(leaps)
+library(lmtest)
+library(markdown)
+library(mctest)
+library(mosaic)
+library(mdsr)
+library(mosaicData)
+library(nycflights13)
+library(olsrr)
+library(plyr)
+library(purrr)
+library(plotly)
+library(resampledata)
+library(rmarkdown)
+library(rpart)
+library(rpart.plot)
+library(rvest)
+library(SDaA)
+library(shiny)
+library(stringi)
+library(tibble)
+library(tidyr)
+library(tidyselect)
+library(tinytex)
+library(yaml)
+library(shiny)
+```
+
+# Analysis of Factors that Influence Crude Oil Spot Price and Price prediction
+
+**Group No. 1**
+
+  1. Bo Li (30212597)
+
+  2. Brian Ho (30222881)
+
+  3. Ethan Mah (30009425)
+
+  4. Israa Farouk (30076315)
+
+# Introduction
+
+The global crude oil market represents a dynamic and intricate system influenced by numerous factors that collectively determine its pricing trends. In the pursuit of understanding and modeling the complexities of this market, this project embarks on an analysis of seven key factors outlined by the U.S. Energy Information Administration that wields significant influence over oil markets. The factors under scrutiny encompass both the supply and demand sides of the market, incorporating the distinctive dynamics of oil production and consumption.
+
+The datasets we chose to work with are published by The U.S. Energy Information Administration (EIA)[1]. EIA identified 7 major factors that influence crude oil prices. The table below details the 8 datasets (1 for response variable, 7 for explanatory variables) and describes the data and variables in each dataset.
+
+### Research Topics
+
+The chosen research topics revolves around seven pivotal factors, namely:
+
+### Supply Factors
+
+1.  **Oil Production from Countries Outside the Organization of the Petroleum Exporting Countries (OPEC)**\
+    The Organization of the Petroleum Exporting Countries (OPEC) is a permanent, intergovernmental Organization, created at the Baghdad Conference on September 10--14, 1960, by Iran, Iraq, Kuwait, Saudi Arabia and Venezuela. (OPEC 2019)[2] Examining the production patterns of non-OPEC nations contributes to understanding the global supply dynamics and its impact on crude oil prices.
+
+2.  **Oil Production from Countries in the Organization of the Petroleum Exporting Countries (OPEC)**\
+    The production decisions made by OPEC member countries play a crucial role in shaping the global supply landscape, making it imperative to analyze their contributions.
+
+3.  **Balance of Petroleum Inventories**\
+    The inventory levels of petroleum products serve as a key indicator of market dynamics, reflecting the delicate equilibrium between supply and demand.
+
+4.  **Prices of Crude Oil Streams Produced Globally**\
+    For this report, we will use WTI spot price, West Texas Intermediate (WTI) is a grade or mix of crude oil; the term is also used to refer to the spot price, the futures price, or assessed price for that oil. ("West Texas Intermediate" 2023)[4]
+
+### Demand Factors
+
+-   **Demand - Oil Consumption in Developing Countries outside the OECD:** The Organisation for Economic Co-operation and Development is an intergovernmental organization with 38 member countries, founded in 1961 to stimulate economic progress and world trade("OECD" 2023)[3]. Understanding the patterns of oil consumption in developing nations outside the OECD provides insights into emerging market dynamics.
+
+-   **Demand - Oil Consumption in Developing Countries within the OECD:** Analyzing oil consumption patterns in developing countries within the OECD offers a nuanced perspective on the influence of economic development on energy demand.
+
+### Market Dynamics
+
+The global crude oil market has always been susceptible to fluctuations, shaped by geopolitical events, economic shifts, and supply-demand imbalances. Unraveling the intricate interplay between the identified factors is critical to developing a comprehensive understanding of the forces driving crude oil prices. Such insight is invaluable for policymakers, industry stakeholders, and investors alike, as it provides a foundation for informed decision-making amid the volatility inherent in the energy markets.
+
+## Project Goals
+
+Upon completion of the project we aim to have:
+
+1.  **Identified and Quantified Influential Factors:** Systematically analyze the seven identified factors to discern their individual contributions to crude oil price movements.
+
+2.  **Build a Multiple Regression Model:** Develop a robust multiple regression model that integrates the diverse factors to predict crude oil prices with a high degree of accuracy.
+
+This project aspires to contribute to the body of knowledge surrounding the statistical modeling of crude oil prices, offering practical implications for stakeholders navigating the complexities of the energy market.
+
+# Data
+
+**Response variable**: 
+
++------------------+------------------------------------------------+----------------------------------+
+| **Dataset Name** | **Description**                                | **Variables and Variable Types** |
++------------------+------------------------------------------------+----------------------------------+
+| Spot Prices      | Prices of crude oil streams produced globally. | \                                |
+|                  |                                                |                                  |
+|                  |                                                | -   WTI Price  (Quantitative)    |
++------------------+------------------------------------------------+----------------------------------+
+
+**Explanatory variables**:\
+
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| **Dataset Name**  | **Description**                                                                                                               | **Variables and Variable Types**                                      |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Supply Non-OPEC   | Oil production data from countries outside the Organization of the Petroleum Exporting Countries (OPEC).                      | \                                                                     |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | -   non-OPEC Production Change (Quantitative)                         |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Supply OPEC       | Crude oil production from counties in OPEC.                                                                                   | \                                                                     |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | -   Saudi Production Change (Quantitative)                            |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Balance           | Petroleum inventories                                                                                                         | \                                                                     |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | -   Inventory (Quantitative)                                          |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Financial Markets | Buy and Sell data of quantities of oil.                                                                                       | \                                                                     |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | -   Open interest on crude oil futures on US exchanges (Quantitative) |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Demand Non-OECD   | Oil consumption in developing countries that are not part of the Organization of Economic Cooperation and Development (OECD). | -   non-OECD Consumption Growth (Quantitative)                        |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Demand OECD       | Oil consumption of countries that are part of OECD.                                                                           | \                                                                     |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | -   y-o-y (year over year) % OECD Consumption Change (Quantitative)   |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+| Global affairs    | Global affairs that can have an impact on oil prices.                                                                         | Qualitative variables:                                                |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | 0: no major events                                                    |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | 1: OPEC announce production cuts or increase                          |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | 2: political (war)or financial events or crisis (recession, Covid)    |
+|                   |                                                                                                                               |                                                                       |
+|                   |                                                                                                                               | 3: Technology innovation annoucement                                  |
++-------------------+-------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------+
+
+After combining the above 8 datasets into one, there are 10 columns with 70 rows in our final datasets with data from 2006 to 2023.
+
+The dataset is split into two sets, with the first 64 rows (\~90%) as training dataset for model development and training, while the last 6 rows (\~10%) as validation dataset for model testing.
+
+### Data used in Project:
+
+```{r}
+# Data Wrangling Process:
+
+# a. Read each CSV
+
+data.a <- read.csv("Prices_events.csv") 
+data.b <- read.csv("nonOPEC_production.csv")
+data.c <- read.csv("saudi_production.csv")
+data.d <- read.csv("balance.csv")
+data.e <- read.csv("Markets_interest.csv")
+data.f <- read.csv("nonOECD_consumption.csv")
+data.g <- read.csv("OECD_consumption.csv")
+
+
+# b. Assuming 'Date' is the common column in all data frames, right join each CSV together
+
+result <- right_join(data.a, data.b, by = 'Date') %>%
+          right_join(data.c, by = 'Date') %>%
+          right_join(data.d, by = 'Date') %>%
+          right_join(data.e, by = 'Date') %>%
+          right_join(data.f, by = 'Date') %>%
+          right_join(data.g, by = 'Date')
+
+# c. Remove irrelavent columns
+
+result2 <- result[ -c(4,6,8,9,11,12,14,15,17,19,20,22) ]
+
+# d. Remove irrelavent rows (null)
+
+result2 <- na.omit(result2)  
+
+# e. Change column names for easy use
+
+colnames(result2) <- c('Quarter','Year','WTI','Events','NonOPEC_Production',
+                       'Saudi_Production','Inventory','OpenInterest',
+                       'NonOECD_Consumption','YOY_OECD_Consumption')
+
+# f. Ensure data is properly formatted (dataframe and class numeric)
+
+result2$WTI = as.numeric(as.character(result2$WTI))
+result2$Events = as.numeric(as.character(result2$Events))
+result2$NonOPEC_Production = as.numeric(as.character(result2$NonOPEC_Production))
+result2$Saudi_Production = as.numeric(as.character(result2$Saudi_Production))
+result2$Inventory = as.numeric(as.character(result2$Inventory))
+result2$OpenInterest = as.numeric(as.character(result2$OpenInterest))
+result2$NonOECD_Consumption = as.numeric(as.character(result2$NonOECD_Consumption))
+result2$YOY_OECD_Consumption = as.numeric(as.character(result2$YOY_OECD_Consumption))
+
+main.model2023 = data.frame(result2)
+
+
+# g. remove last 6 rows for prediction purposes
+
+main.model<- main.model2023[-seq(nrow(main.model2023),nrow(main.model2023)-5),]
+```
+
+To help us explore the data as well as reaching the goal of this project, we created guiding questions as below.
+
+# Guiding Questions:
+
+1.  **What are the best predictors for the first order model?**
+
+2.  **What is the best fit model?**
+
+3.  **Are all assumptions hold?**
+
+4.  **Can we use this model to predict future oil spot prices?**
+
+## Question 1:
+
+## **What are the best predictors for the first order model?**
+
+### Full Model:
+
+The test will follow the statistical hypothesis:
+
+Ho: $\beta_i$ $=$ 0
+
+Ha: $\beta_i$ $\neq$ 0
+
+```{r}
+fullmodel = (lm(WTI ~ factor(Events) + NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+summary(fullmodel)
+```
+
+The full model demonstrated in the form of an equation can be viewed below:
+
+$$
+\begin{aligned}
+\widehat{WTI} &= B_0 + B_1X_{Event1} + B_2X_{Event2} + B_3X_{Event3}\\
+&+ B_4X_{NonOPECProduction} + B_5X_{SaudiProduction}\\
+&+ B_6X_{Inventory} + B_7X_{OpenInterest} + B_8X_{NonOECDConsumption}\\
+&+ B_9X_{YOYOOECDConsumption} 
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+\widehat{WTI} &= 122.7957 - 3.9406X_{Event1} - 6.6938X_{Event2} - 14.3756X_{Event3}\\
+&+ 4.1740X_{NonOPECProduction} + 14.2046X_{SaudiProduction}\\
+&- 0.0996X_{Inventory} - 0.02951X_{OpenInterest} + 3.4448X_{NonOECDConsumption}\\
+&- 3.5365X_{YOYOOECDConsumption} 
+\end{aligned}
+$$
+
+### Stepwise Regression Selection:
+
+```{r echo=FALSE}
+stepmod=ols_step_both_p(fullmodel,pent = 0.05, prem = 0.3, details=TRUE)
+```
+
+```{r}
+summary(stepmod$model)
+```
+
+Summary: From the stepwise regression output, the regression model that is best fit to predict oil price is Y = Bo + B1X1 + B2X2 + B3X3 + B4X4 + B5X5 + B6X6, with significant predictor variables being NonOECD_Consumption, Saudi_Production, OpenInterest, Inventory, YOY_OECD_Consumption, NonOPEC_Production. Substituting the values from the summary output will lead to the following model:
+
+$\hat{WTI_{i}}$ = Bo + B1($NonOPECProduction$) + B2($SaudiProduction$) + B3($Inventory$) + B4($OpenInterest$) + B5($NonOECDConsumption$) + B6($YOYOECDConsumption$)
+
+$\hat{WTI_{i}}$ = 122.7957 + 3.4671($NonOPECProduction$) + 13.2898($SaudiProduction$) -\
+0.1012($Inventory$) - 0.03007($OpenInterest$) + 3.9856($NonOECDConsumption$) -\
+3.4322($YOYOECDConsumption$)
+
+### Forward Regression Selection:
+
+```{r echo=FALSE}
+formodel=ols_step_forward_p(fullmodel,penter = 0.05, details=TRUE)
+```
+
+```{r}
+summary(formodel$model)
+```
+
+Summary: From the forward regression output, the regression model that is best fit to predict oil price is Y = Bo + B1X1 + B2X2 + B3X3 + B4X4 + B5X5 + B6X6, with significant predictor variables being NonOECD_Consumption, Saudi_Production, OpenInterest, Inventory, YOY_OECD_Consumption, NonOPEC_Production. Substituting the values from the summary output will lead to the following model:
+
+$\hat{WTI_{i}}$ = 122.7957 + 3.4671($NonOPECProduction$) + 13.2898($SaudiProduction$) -\
+0.1012($Inventory$) - 0.03007($OpenInterest$) + 3.9856($NonOECDConsumption$) -\
+3.4322($YOYOECDConsumption$)
+
+### Backward Regression Selection:
+
+```{r echo=FALSE}
+backmodel=ols_step_backward_p(fullmodel, prem = 0.05, details=TRUE)
+```
+
+```{r}
+summary(backmodel$model)
+```
+
+Summary: The backward Regression Procedure output details the first order regression model that is best fit to predict oil price is Y = Bo + B1X1 + B2X2 + B3X3 + B4X4 + B5X5 + B6X6, with significant predictor variables being NonOECD_Consumption, Saudi_Production, OpenInterest, Inventory, YOY_OECD_Consumption, NonOPEC_Production. Similar to the previous methods, substituting the coefficients from the summary output will result in the model:
+
+$\hat{WTI_{i}}$ = 122.7957 + 3.4671($NonOPECProduction$) + 13.2898($SaudiProduction$) -\
+0.1012($Inventory$) - 0.03007($OpenInterest$) + 3.9856($NonOECDConsumption$) -\
+3.4322($YOYOECDConsumption$)
+
+### Individual Coefficent T-test:
+
+The individual coefficient t-test will follow the statistical hypothesis:
+
+Ho: $\beta_i$ $=$ 0
+
+Ha: $\beta_i$ $\neq$ 0
+
+```{r}
+fullmodel = (lm(WTI ~ factor(Events) + NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+summary(fullmodel)
+```
+
+From the above model, it is apparent that the categorical variable, events, is non-significant to predict oil price. This is evident as the p-value for these terms are greater than 0.05 (alpha), indicating that we have sufficient evidence to reject the null hypothesis and therefore, assume that at least one of the predictor variables does not equal to zero. Since this variable is not significant when estimating oil price, we will drop the term and re-evaluate the model again to see if there are any improvements.
+
+```{r}
+adj.model.1 = (lm(WTI ~  NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+summary(adj.model.1)
+```
+
+From the above output, we can see that with the new model, adjusted r-squared has increased and RMSE has decreased. This indicates the model has improved through dropping the Event variable as a greater adjusted r-squared value and smaller RMSE value presents a more accurate model when estimating the dependent variable, WTI. Comparison of the values can be viewed below:
+
+-   Full Model: Adjusted R-squared: 0.6752, Residual standard error: 16.36
+-   Adj.Model 1: Adjusted R-squared: 0.6839, Residual standard error: 16.14
+
+Nevertheless, we will compare the reduced and full model and determine which model is more usable to predict the oil price, we will use the anova function:
+
+Ho: Reduced model is better (model with less terms), $\beta_i$ $=$ 0
+
+Ha: Reduced model is not better (model with more terms), one of the $\beta_i$ $\neq$ 0
+
+```{r}
+full = (lm(WTI ~ factor(Events) + NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+red = (lm(WTI ~  NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+anova(red, full)
+```
+
+From the anova output, the model shows a F-statistic of 0.4931 with df 3, 54 and a p-value of 0.6886. This p-value is greater than alpha = 0.05, indicating that we should clearly not reject the null hypothesis. This means we should definitely drop the non-significant variables from the model as this output illustrates that the reduced model is better to use for predicting crude oil price.
+
+Even though the model looks good right now, we can conduct further investigation to determine if the model can be improved by continuing to reduce the model. From the reduced model output, the next term that can be dropped, as it holds the largest p-value from the remaining predictor variables, is NonOPEC_Production.
+
+```{r}
+adj.model.2 = (lm(WTI ~   Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+summary(adj.model.2)
+```
+
+From the above output, we can see that with the second adjusted model, adjusted r-squared has decreased and RMSE has increased due to the change. This indicates the model has regressed by dropping the NonOPEC_Production variable as a smaller adjusted r-squared value and greater RMSE value presents a less accurate model when estimating the dependent variable, WTI (oil price). Comparison of the values can be viewed below:
+
+-   Adj.Model 1: Adjusted R-squared: 0.6803, Residual standard error: 15.67
+-   Adj.Model 2: Adjusted R-squared: 0.6552, Residual standard error: 16.86
+
+For additional confirmation, we will compare both reduced models and determine which model is more ideal to predict the oil price through the use of the anova function:
+
+The statistical hypothesis for this F-test is:
+
+Ho: Reduced model is better (model with less terms), $\beta_i$ $=$ 0
+
+Ha: Reduced model is not better (model with more terms), one of the $\beta_i$ $\neq$ 0
+
+```{r}
+red = (lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+red2 = (lm(WTI ~ Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model))
+anova(red2, red)
+```
+
+From the anova output, the model shows a F-statistic of 6.2576 with df 1, 57 and a p-value of 0.01526. This p-value is smaller than alpha = 0.05, indicating that we should clearly reject the null hypothesis. This means we should not drop the non-significant variables that we removed from the model as at least one of the predictor variables does not equal 0. This illustrates that the further reduced model is worse to use for predicting Y. From this evidence, as well as the worsened adj. r-squared value, we will revert back to the previously stated model.
+
+Therefore, the first order model, representing best fit, that resulted from the individual coefficient t-test procedure looks like:
+
+$\hat{WTI_{i}}$ = 122.7957 + 3.4671($NonOPECProduction$) + 13.2898($SaudiProduction$) -\
+0.1012($Inventory$) - 0.03007($OpenInterest$) + 3.9856($NonOECDConsumption$) -\
+3.4322($YOYOECDConsumption$)
+
+### All-Possible-Regression-Selection:
+
+To determine significant predictors using the all-possible-regression-selection method, we will use the regsubsets function:
+
+```{r}
+best.subset = regsubsets(WTI ~ factor(Events) + NonOPEC_Production + Saudi_Production + Inventory +
+                OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model, nv=7)
+summary(best.subset)
+```
+
+Create data table that illustrates r-square, adjusted r-squared, cp, RMSE, and BIC. This will help us determine how many terms the model should have in order to be optimal:
+
+```{r}
+reg.summary<-summary(best.subset)
+# for the output interpretation
+rsquare<-c(reg.summary$rsq)
+cp<-c(reg.summary$cp)
+AdjustedR<-c(reg.summary$adjr2)
+RMSE<-c(reg.summary$rss)
+BIC<-c(reg.summary$bic)
+cbind(rsquare,cp,BIC,RMSE,AdjustedR)
+```
+
+We can use the table above to find how many variables the best model should have:
+
+a.  Adj. R-squared: Typically, the largest adjusted r-squared value indicates a more accurate model. In this case, a model with 6 variables carries the largest adj. r-squared value of 0.6838608.
+
+b.  Cp: A small cp value (or total mean square error) details that the model is relatively precise. From the table above, the smallest cp value belongs to the model with 6 terms (5.479317).
+
+c.  BIC: Lower BIC indicate a better model. For this scenario, the model with 6 terms hold the smallest BIC value at -50.99382.
+
+d.  RMSE: A lower RMSE indicate a more accurate model when predicting for Y. In this case, the smallest RMSE comes from the model with 7 terms (14677.14).
+
+In conclusion, from this method, 6 terms is optimal in creating the best fit model to predict WTI.
+
+The plots below illustrate the conclusion we talked about.
+
+```{r}
+par(mfrow=c(3,2)) # split the plotting panel into a 3 x 2 grid
+plot(reg.summary$cp,type = "o",pch=10, xlab="Number of Variables",ylab= "Cp")
+plot(reg.summary$bic,type = "o",pch=10, xlab="Number of Variables",ylab= "BIC")
+plot(reg.summary$rsq,type = "o",pch=10, xlab="Number of Variables",ylab= "Rˆ2")
+plot(reg.summary$rss,type = "o",pch=10, xlab="Number of Variables",ylab= "RMSE")
+plot(reg.summary$adjr2,type = "o",pch=10, xlab="Number of Variables",ylab= "Adjusted Rˆ2")
+```
+
+While only taking interest to the first 6 most significant terms, the greatest significant predictors illustrated from the regsubsets function are:
+
+-   Non-OPEC Production
+-   Saudi Production
+-   Inventory
+-   Open Interest
+-   Non-OECD Consumption
+-   Year-over-year OECD Consumption
+
+This would produce the following model:
+
+$\widehat{WTI_{i}}$ = 122.7957 + 3.4671($NonOPECProduction$) + 13.2898($SaudiProduction$) -\
+0.1012($Inventory$) - 0.03007($OpenInterest$) + 3.9856($NonOECDConsumption$) -\
+3.4322($YOYOECDConsumption$)
+
+Based on results of the five different regression selection methods, the final model would be:
+
+$$
+\begin{aligned}
+\widehat{WTI} &= 122.7957 + 3.4671X_{NonOPECProduction} + 13.2898X_{SaudiProduction}\\
+&- 0.1012X_{Inventory} - 0.03007X_{OpenInterest} + 3.9856X_{NonOECDConsumption}\\
+&- 3.4322X_{YOYOOECDConsumption} 
+\end{aligned}
+$$
+
+This equation holds the following interpretation:
+
+-   There appears to be a positive relationship between WTI (oil price) and Non-OPEC Production Change.
+-   There appears to be a positive relationship between WTI (oil price) and Saudi Production Change.
+-   There appears to be a negative relationship between WTI (oil price) and Inventory Change.
+-   There appears to be a negative relationship between WTI (oil price) and Open Interest.
+-   There appears to be a positive relationship between WTI (oil price) and Non-OECD Consumption Growth.
+-   There appears to be a negative relationship between WTI (oil price) and Year-over-year OECD Consumption Change.
+
+## Question 2:
+
+## **What is the best fit model?**
+
+#Interaction and power ------------------------------------------------------------------
+
+Lets see if we can improve our model with interaction terms
+
+```{r}
+interacmodel<-lm(WTI ~  (NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption)^2, data = main.model)
+summary(interacmodel)
+```
+
+Looking at the results we can see that the p-value of Saudi_Production:NonOECD_Consumption is the only interaction term less than 0.05, indicating all other interaction terms should be dropped. We can test this by conducting a partial F-test.
+
+```{r}
+interacmodel2<-lm(WTI ~  (NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + Saudi_Production*NonOECD_Consumption), data = main.model)
+summary(interacmodel2)
+```
+
+Once the interaction term was added to the model it appears to no longer be significant. Therefore we can decide to forego using any interaction terms in our final model.
+
+```{r}
+pairs(~WTI + NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption , data = main.model, panel = panel.smooth) 
+```
+
+Lets investigate YOY_OECD_Consumption for higher order
+
+```{r}
+YOY_HighOrder= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(YOY_OECD_Consumption^2), data = main.model)
+summary(YOY_HighOrder)
+```
+
+The higher order term does not appear to be significant. Lets investigate NonOECD_Consumption for higher order.
+
+```{r}
+nonOECD_HighOrder= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(NonOECD_Consumption^2), data = main.model)
+summary(nonOECD_HighOrder)
+```
+
+The higher order term does not appear to be significant. Lets investigate OpenInterest for higher order.
+
+```{r}
+OpenInterest_HighOrder= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(OpenInterest^2), data = main.model)
+summary(OpenInterest_HighOrder)
+```
+
+```{r}
+OpenInterest_HighOrder2= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + I(OpenInterest^2) + I(OpenInterest^3) + NonOECD_Consumption + YOY_OECD_Consumption, data = main.model)
+summary(OpenInterest_HighOrder2)
+```
+
+From the output it appears that the model that is best is the degree 2 model based on the significance of the term and the adjusted R square and RMSE.
+
+Lets investigate Inventory for higher order.
+
+```{r}
+Inventory_HighOrder= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(Inventory^2), data = main.model)
+summary(Inventory_HighOrder)
+```
+
+```{r}
+Inventory_HighOrder2= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(Inventory^2) + I(Inventory^3), data = main.model)
+summary(Inventory_HighOrder2)
+```
+
+```{r}
+Inventory_HighOrder3= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(Inventory^2) + I(Inventory^3) + I(Inventory^4), data = main.model)
+summary(Inventory_HighOrder3)
+```
+
+From the output it appears that the model that is best is the degree 2 model based on the significance of the term and the adjusted R square and RMSE.
+
+Lets investigate Saudi_Production for higher order.
+
+```{r}
+Saudi_Production_HighOrder= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(Saudi_Production^2), data = main.model)
+summary(Saudi_Production_HighOrder)
+```
+
+The higher order term does not appear to be significant. Lets investigate NonOPEC_Production for higher order.
+
+```{r}
+NonOPEC_Production_HighOrder= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(NonOPEC_Production^2), data = main.model)
+summary(NonOPEC_Production_HighOrder)
+```
+
+The higher order term does not appear to be significant.
+
+Considering these higher order terms our final model is
+
+```{r}
+finalmodel= lm(WTI ~ NonOPEC_Production + Saudi_Production + Inventory + OpenInterest + NonOECD_Consumption + YOY_OECD_Consumption + I(OpenInterest^2) + I(Inventory^2), data = main.model)
+summary(finalmodel)
+
+```
+
+The final model has an adjusted R -squared of 0.7514 and the initial model had an adjusted R-square of 0.6803.
+
+The equation of the final model:
+
+$$
+\begin{aligned}
+\widehat{WTI} &= 40.32128170 + 2.74139788X_{NonOPECProduction} + 10.26130174X_{SaudiProduction}\\
+&- 0.12666671X_{Inventory} + 0.08122777X_{OpenInterest} + 2.16623099X_{NonOECDConsumption}\\
+&- 2.56889727X_{YOYOOECDConsumption} - 0.00003173X^2_{OpenInterest} - 0.00019898X^2_{Inventory}
+\end{aligned}
+$$
+
+## Question 3:
+
+## **Do all assumptions hold?**
+
+## Regression Diagnostics Analysis
+
+## Linearity
+
+Linear regression model operates under the assumption of a linear association between the predictors and the response variable. If the actual relationship deviates significantly from linearity, the validity of most inferences drawn from the model becomes questionable. Moreover, non-linearity might diminish the predictive accuracy of our model.
+
+```{r}
+ggplot(red, aes(x = .fitted, y = .resid)) +
+  geom_hline(yintercept = 0) + 
+  geom_point() + 
+  ggtitle("Residual Plot: Residuals VS Fitted values")
+```
+
+The residual plot shows no observable pattern, indicating that there are no non-linear associations in the data and the linearity assumption is met.
+
+## Independence
+
+It is also crucial that the error terms of linear regression model are uncorrelated, in other words, mutually independent. If the errors are correlated, that means the value of the nth error could provide information about the value of the (n+1)th error.
+
+```{r}
+plot(finalmodel$residuals, main = "Residuals VS Observations (Time)", xlab = "Observations", ylab = "Residuals")
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(finalmodel$residuals), col = "blue")
+```
+
+According to the residuals against the order of observations (time) plot, there appears to be a periodic pattern though it is not significant. This indicates the failure of independence condition, and the response variable WTI price is likely to be related to time.
+
+## Equal Variance (Homoscedasticity)
+
+Another critical assumption of the linear regression model is the constancy of variance in the error terms, also known as homoscedasticity. However, in practical scenarios, it is not uncommon for the variances of the error terms to deviate from constancy.
+
+```{r}
+ggplot(finalmodel, aes(x = .fitted, y = .resid)) +
+  geom_hline(yintercept = 0) + 
+  geom_point(color = "red") + 
+  ggtitle("Residual Plot: Residuals VS Fitted values")
+```
+
+```{r}
+ggplot(finalmodel, aes(x=.fitted, y=sqrt(abs(.stdresid)))) +
+  geom_point(color = "red") +
+  geom_hline(yintercept = 0) +
+  ggtitle("Scale-Location plot : Standardized Residual vs Fitted values") +
+  xlab("Fitted Values") +
+  ylab("sqrt(Standardized Residuals)")
+```
+
+From both the residual and scale-location plots, the dots appear to be randomly spread over the range of predictions and do not tend to increase with the fitted values, demonstrating the insufficient evidence to suggest that heteroscedasticity exists.
+
+Apart from visual observations, we will perform Breusch-Pagan (BP) Test to further confirm the assumption.
+
+$$
+\begin{aligned}
+H_0&: \mbox{Heteroscedasticity is not present}\\
+H_a&: \mbox{Heteroscedasticity is present}
+\end{aligned}
+$$
+
+```{r}
+bptest(finalmodel)
+```
+
+Based on the result from BP test, P-value = 0.5115 \> 0.05, meaning that we should clearly not to reject the null hypothesis. In other words, we can infer that heteroscedasticity does not exist, and the test result supports our conclusion on equal variance.
+
+## Normality
+
+The most primary assumption of the linear regression model is the Normality of the differences between observed and predicted values, referred to an assumed normally distribution of the residuals of the regression.
+
+```{r}
+ggplot(data=main.model, aes(residuals(finalmodel))) + 
+  geom_histogram(bins = 10, col="black", fill="orange") + 
+  labs(title="Histogram for Residuals") +
+  labs(x="residuals", y="Count")
+```
+
+The distribution of residuals seems to be symmetrical with low kurtosis, showing that the residuals of the regression should be normally distributed.
+
+```{r}
+ggplot(main.model, aes(sample = finalmodel$residuals)) + 
+  stat_qq(col = "blue") + 
+  stat_qqline(col = "red") +
+  ggtitle("Normal Probability Plot of Residuals")
+```
+
+From the Normal probability plot, the majority points of residuals are close to or aligned with the red Normal line. Therefore, the condition of the Normality of the model appears to hold. Since the sample size is small (n = 70), statistical test is more reliable and we will perform statistical test to further confirm on our conclusion. Shapiro-Wilk Test will be used in the following.
+
+$$
+\begin{aligned}
+H_0&: \mbox{the sample data are significantly normally distributed}\\
+H_a&: \mbox{the sample data are not significantly normally distributed}
+\end{aligned}
+$$
+
+```{r}
+shapiro.test(residuals(finalmodel))
+```
+
+Based on the result from Shapiro-Wilk Test, P-value = 0.2833 \> 0.05, meaning that we should clearly not to reject the null hypothesis. Therefore, it supports our conclusion that the errors of the model are normally distributed.
+
+## Multicollinearity
+
+Multicollinearity exists when the independent variables are intercorrelated. It is not unusual to observe correlations among independent variables as some of the predictors might be partially or completely explained by other predictors. However, the existence of multicollinearity could cause influences to the robustness of the regression model. Hence, we will look into pairwise scatterplots to identify if there is any observable correlation between the predictors of our final model.
+
+```{r}
+main.model_sub <- subset(main.model, select = -c(Quarter, Year, Events))
+ggpairs(main.model_sub, lower = list(continuous = "smooth_loess", 
+                         combo = "facethist", 
+                         discrete = "facetbar", 
+                         na = "na"))
+```
+
+From the pairwise scatterplots, there are no observable correlations between independent variables. Next, we will compute the Variance Inflation Factor (VIF) for each independent variables to further identify the correlation between them, using the formula:
+
+$$
+\begin{aligned} VIF({\hat{\beta_j}})=\frac{1}{1-R^2_{X_j|X_{-j}}} \end{aligned}\
+$$
+
+where $R^2_{X_j|X_{-j}}$ is the $R^2$ from a regression of $X_j$ onto all of the other predictors. If VIF is large, collinearity is likely to present, where VIF = 5 or 10 are the critical values of multicollinearity in general.
+
+```{r}
+imcdiag(mod = red, method = "VIF")
+```
+
+```{r}
+vif(red)
+```
+
+Using VIF for the identification of inter-correlations and the strength of those correlations, we do not detect any collinearities between independent variables. The VIF value of each variable is below 3, which is smaller than 5, the critical level of multicollinearity. Therefore, we conclude that there is no significant association between independent variables and the multicollinearity assumption is met by the final model.
+
+## Outliers
+
+Outliers are data points that significantly differ from the rest of the observations in a dataset. They can have a substantial impact on statistical analyses and regression models. Cook's distance, quantifies the impact of excluding a particular observation. A high Cook's distance value suggests that the corresponding observation holds significant influence over the estimated coefficients. This is because either the residual, the leverage, or both are expected to be substantial in such cases. We have chosen to identify potential underlying outliers by employing Cook's distance measure, considering observations with Cook's distance greater than 1 as influential point.
+
+Using Cook's distance measure (Cook's distance \> 1),
+
+```{r}
+main.model[cooks.distance(finalmodel) > 1,]
+
+plot(finalmodel, pch = 18, col = "blue", which = c(4))
+```
+
+From the Cook's distance plot, we can see that all observations have Cook's distance smaller than 1 with the 62nd observation having the highest Cook's distance value of approximately 0.65.
+
+```{r}
+plot(finalmodel, which = c(5))
+```
+
+From the residuals against leverage plot, there is no also influential case as all the standardized residual points are inside of the Cook's distance lines (Cook's distance = 1). Therefore, we conclude that no outliers are detected from the dataset used for model development.
+
+In overall, our final model satisfies all assumptions for multiple linear regression, except for the independence condition. Due to the nature of WTI price being time-series data, its changes exhibit a temporal relationship. This compromises the model's validity and diminishes prediction accuracy. Despite the reduced adequacy of the model, we will proceed with predicting the WTI price and its expected range to assess whether the model's predictions are considered acceptable.
+
+## Question 4:
+
+## **Can we use this model to predict future oil spot prices?**
+
+We will use prediction() to do the prediction then compare the outcomes with the actual data we have.
+
+The equation of the final model:
+
+$$
+\begin{aligned}
+\widehat{WTI} &= 40.32128170 + 2.74139788X_{NonOPECProduction} + 10.26130174X_{SaudiProduction}\\
+&- 0.12666671X_{Inventory} + 0.08122777X_{OpenInterest} + 2.16623099X_{NonOECDConsumption}\\
+&- 2.56889727X_{YOYOOECDConsumption} - 0.00003173X^2_{OpenInterest} - 0.00019898X^2_{Inventory}
+\end{aligned}
+$$
+
+From this model we see that "SaudiProdcution" has the highest coeffciency as 10.26130174, in other words, the production from Saudi (which is representing the production from OPEC in the dataset) has the strongest positive impact regarding price prediction.
+
+Now, let's use the validation dataset with data from Q1 2022 to Q2 2023 to see if our predictions are precise are not.
+
+## 
+
+```{r}
+predict(finalmodel, newdata=data.frame(Quarter = "1Q 2022", Year = 2022,  NonOPEC_Production = 2.72, Saudi_Production=1.59, Inventory = 	-311.30, OpenInterest = 1985.798, NonOECD_Consumption = 2.60,  YOY_OECD_Consumption = 7.40), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(finalmodel, newdata=data.frame(Quarter = "2Q 2022", Year = 2022,  NonOPEC_Production = 1.15, Saudi_Production=1.77, Inventory = 	-216.58, OpenInterest = 1742.176, NonOECD_Consumption = 1.67,  YOY_OECD_Consumption = 2.37), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(finalmodel, newdata=data.frame(Quarter = "3Q 2022", Year = 2022,  NonOPEC_Production = 1.67, Saudi_Production=1.30, Inventory = 	-23.53, OpenInterest = 1545.646, NonOECD_Consumption = 2.27,  YOY_OECD_Consumption = 0.90), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(finalmodel, newdata=data.frame(Quarter = "4Q 2022", Year = 2022,   NonOPEC_Production = 1.40, Saudi_Production=0.63, Inventory = 	126.90, OpenInterest = 1444.743, NonOECD_Consumption = 2.49,  YOY_OECD_Consumption = -2.53), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(finalmodel, newdata=data.frame(Quarter = "1Q 2023", Year = 2023,   NonOPEC_Production = 1.84, Saudi_Production=-0.06, Inventory = 	141.98, OpenInterest = 1725.076, NonOECD_Consumption = 3.41,  YOY_OECD_Consumption = -0.96), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(finalmodel, newdata=data.frame(Quarter = "2Q 2023", Year = 2023,   NonOPEC_Production = 2.42, Saudi_Production=-0.12, Inventory = 	165.75, OpenInterest = 1877.983, NonOECD_Consumption = 3.48,  YOY_OECD_Consumption = 0.63), interval="conf") #compute the 95% CI for Y
+```
+
+But is it truly judicious to disregard the impact of extreme events on crude oil price fluctuations, especially when these global affair events have historically demonstrated a significant, almost atomic-bomb-like influence on market dynamics ?
+
+A more comprehensive approach could involve conducting a side-by-side analysis. This would entail comparing the predictive outcomes of our most refined final model with those of a more rudimentary first-order model that explicitly incorporates extreme events as a key variable. By juxtaposing these models' forecasts against the actual crude oil prices that we can obtain, we would be able to assess the effectiveness and accuracy of including such extraordinary occurrences in our economic predictions\
+\
+The first order full model which include "Global affairs" as qualitative factor can be viewed below:
+
+$\hat{WIT_{i}}$ = 122.691968 - 3.940619($Event1$) - 6.693843($Event2$) - 14.375629($Event3$) + 4.174032($NonOPECProduction$) + 14.204585($SaudiProduction$) - 0.099613($Inventory$) - 0.029513($OpenInterest$) + 3.444777($NonOECDConsumption$) - 3.536455($YOYOECDConsumption$)
+
+```{r}
+predict(fullmodel, newdata=data.frame(Quarter = "1Q 2022", Year = 2022,  Events = 2, NonOPEC_Production = 2.72, Saudi_Production=1.59, Inventory = 	-311.30, OpenInterest = 1985.798, NonOECD_Consumption = 2.60,  YOY_OECD_Consumption = 7.40), interval="conf")
+```
+
+```{r}
+predict(fullmodel, newdata=data.frame(Quarter = "2Q 2022", Year = 2022,  Events = 0, NonOPEC_Production = 1.15, Saudi_Production=1.77, Inventory = 	-216.58, OpenInterest = 1742.176, NonOECD_Consumption = 1.67,  YOY_OECD_Consumption = 2.37), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(fullmodel, newdata=data.frame(Quarter = "3Q 2022", Year = 2022,   Events = 0, NonOPEC_Production = 1.67, Saudi_Production=1.30, Inventory = 	-23.53, OpenInterest = 1545.646, NonOECD_Consumption = 2.27,  YOY_OECD_Consumption = 0.90), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(fullmodel, newdata=data.frame(Quarter = "4Q 2022", Year = 2022,   Events = 0, NonOPEC_Production = 1.40, Saudi_Production=0.63, Inventory = 	126.90, OpenInterest = 1444.743, NonOECD_Consumption = 2.49,  YOY_OECD_Consumption = -2.53), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(fullmodel, newdata=data.frame(Quarter = "1Q 2023", Year = 2023,   Events = 0, NonOPEC_Production = 1.84, Saudi_Production=-0.06, Inventory = 	141.98, OpenInterest = 1725.076, NonOECD_Consumption = 3.41,  YOY_OECD_Consumption = -0.96), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+predict(fullmodel, newdata=data.frame(Quarter = "2Q 2023", Year = 2023,   Events = 0, NonOPEC_Production = 2.42, Saudi_Production= -0.12, Inventory = 	165.75, OpenInterest = 1877.983, NonOECD_Consumption = 3.48,  YOY_OECD_Consumption = 0.63), interval="conf") #compute the 95% CI for Y
+```
+
+```{r}
+# Load necessary library
+library(ggplot2)
+library(reshape2)
+
+# Creating the data frame
+compare <- data.frame(
+  Year = factor(c('Q1 2022', 'Q2 2022', 'Q3 2022', 'Q4 2022', 'Q1 2023', 'Q2 2023'), 
+                levels = c('Q1 2022', 'Q2 2022', 'Q3 2022', 'Q4 2022', 'Q1 2023', 'Q2 2023')),
+  bestmodelpredict = c(107.0398, 122.4706, 113.459, 94.36124, 78.30481, 65.81872),
+  firstfullpredict = c(105.126, 120.1629, 109.4926, 99.72968, 79.60643, 68.91273),
+  actualprice = c(97.07265, 108.83986, 92.29269, 81.21095, 73.89150, 71.28550)
+)
+
+# Reshape data for plotting with ggplot
+long_compare <- melt(compare, id.vars = 'Year', variable.name = 'Type', value.name = 'Value')
+
+# Create the plot
+ggplot(long_compare, aes(x = Year, y = Value, color = Type, group = Type)) +
+  geom_line(size = 1) +  # Thicker lines
+  geom_point(size = 2) +  # Larger points
+  theme_minimal() +
+  labs(title = 'Comparison of Predictions and Actual Price Over Time', x = 'Year', y = 'Value') +
+  scale_color_manual(values = c('bestmodelpredict' = 'blue', 'firstfullpredict' = 'red', 'actualprice' = 'green')) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Adjusting the x-axis labels
+
+
+
+```
+
+From above, we can see that there is obvious difference regarding prediction when comparing the final best approved model and first order model with events as a factor.
+
+# Conclusion
+
+Based on the analysis of the data presented in our graph, we arrived at the conclusion that the refined, "best fit" model did not demonstrate superior performance in predicting the West Texas Intermediate (WTI) spot price. This outcome was particularly noteworthy in the context of extreme events such as wars, economic crises, and OPEC announcements, which have shown an undeniable influence on crude oil prices. Despite the selection procedure opting to exclude these significant events from the final model, it remains imperative to revisit and reassess its efficacy through comparative analysis.
+
+Upon conducting regression diagnostics analysis, it becomes evident that our final model meets most of the assumptions associated with multiple linear regression. However, a notable exception is observed concerning the independence condition. This deviation primarily stems from the time-series nature of WTI price data, where changes are inherently related with time. The failure to meet this assumption diminishes the overall adequacy of our model and introduces a notable compromise to the accuracy and reliability of its predictions.
+
+This project has underscored a vital lesson: while meticulous steps in predictor and term selection are crucial and align with academic methodologies, it is equally important to ensure that our outcomes are not only theoretically sound but also realistically applicable. The objective is to create models that not only excel in theoretical robustness but also accurately reflect real-world dynamics.
+
+# References
+
+[1] U.S. Energy Information Administration - EIA - independent statistics and analysis. EIA. (n.d.). <https://www.eia.gov/finance/markets/crudeoil/demand-oecd.php>
+
+[2] OPEC. 2019. "OPEC : Brief History." Opec.org. 2019. <https://www.opec.org/opec_web/en/about_us/24.htm>.
+
+[3] "OECD." 2023. Wikipedia. November 28, 2023. <https://en.wikipedia.org/wiki/OECD#>:\~:text=The%20Organisation%20for%20Economic%20Co.
+
+[4] "West Texas Intermediate." 2023. Wikipedia. April 20, 2023. <https://en.wikipedia.org/wiki/West_Texas_Intermediate>.
